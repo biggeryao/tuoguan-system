@@ -15,6 +15,7 @@
 
         <!-- 老师筛选 -->
         <el-select
+          v-if="userRole === 'admin'"
           v-model="listQuery.teacher_id"
           placeholder="👨‍🏫 选择老师"
           clearable
@@ -97,12 +98,7 @@
         <el-tab-pane label="六年级" name="六年级"></el-tab-pane>
       </el-tabs>
 
-      <el-table
-        v-loading="loading"
-        :data="list"
-        border
-        style="width: 100%"
-      >
+      <el-table v-loading="loading" :data="list" border style="width: 100%">
         <el-table-column prop="name" label="姓名" width="100"></el-table-column>
         <el-table-column label="性别" align="center" width="60">
           <template slot-scope="scope">
@@ -514,8 +510,8 @@ export default {
         school: '',
         care_type: ''
       },
-      teacherOptions: []
-
+      teacherOptions: [],
+      userRole: localStorage.getItem('role')
     }
   },
   computed: {

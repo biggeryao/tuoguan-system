@@ -6,64 +6,43 @@ const fs = require('fs');
 
 // 1. 获取学生列表 (支持多维度搜索)
 exports.getStudents = (req, res) => {
-    // 获取查询参数
-    const { name, teacher_id, school, care_type, status } = req.query;
+       // req.user 是从中间件 auth.js 里解解出来的
+    const currentUser = req.user; 
+    
+    const { name, teacher_id, school, care_type } = req.query;
 
-    // 基础 SQL：关联 teachers 表获取老师名字
-    // 1=1 是为了方便后面直接拼接 AND 语句
     let sql = `
         SELECT s.*, t.name as teacher_name 
         FROM students s 
         LEFT JOIN teachers t ON s.teacher_id = t.id 
         WHERE 1=1 
     `;
-    
     const params = [];
 
-    // --- 动态拼接查询条件 ---
-
-    // 1. 按老师搜
-    if (teacher_id) {
-        sql += ' AND s.teacher_id = ?';
-        params.push(teacher_id);
-    }
+    // === 🕵️‍♂️ 权限控制核心代码 ===
     
-    // 2. 按名字搜 (模糊查询)
-    if (name) {
-        sql += ' AND s.name LIKE ?';
-        params.push(`%${name}%`);
-    }
-
-    // 3. 按学校搜 (模糊查询)
-    if (school) {
-        sql += ' AND s.school LIKE ?';
-        params.push(`%${school}%`);
-    }
-
-    // 4. 按托管类型搜
-    if (care_type) {
-        sql += ' AND s.care_type = ?';
-        params.push(care_type);
-    }
-
-    // 5. 按状态搜 (默认只查在读的 status=1，如果前端没传 status，默认不查离职的)
-    if (status !== undefined && status !== '') {
-        sql += ' AND s.status = ?';
-        params.push(status);
+    if (currentUser.role === 'teacher') {
+        // 如果是普通老师，强制只查他自己的班级
+        // 即使前端故意传了别人的 teacher_id，这里也会覆盖，保证安全
+        sql += ' AND s.teacher_id = ?';
+        params.push(currentUser.teacher_id); 
     } else {
-        // 默认不显示已删除/离职的，除非特意选了
-        // 如果你的逻辑是 status=0 是离职，这里视情况而定
-        // sql += ' AND s.status = 1'; 
+        // 如果是管理员 (admin)，则允许按前端传来的 teacher_id 筛选
+        if (teacher_id) {
+            sql += ' AND s.teacher_id = ?';
+            params.push(teacher_id);
+        }
     }
 
-    // 最后排序
+    // === 其他通用搜索条件 ===
+    if (name) { sql += ' AND s.name LIKE ?'; params.push(`%${name}%`); }
+    if (school) { sql += ' AND s.school LIKE ?'; params.push(`%${school}%`); }
+    if (care_type) { sql += ' AND s.care_type = ?'; params.push(care_type); }
+
     sql += ' ORDER BY s.created_at DESC';
 
     db.query(sql, params, (err, results) => {
-        if (err) {
-            console.error(err);
-            return res.json({ code: 500, msg: '数据库查询出错' });
-        }
+        if (err) return res.json({ code: 500, msg: '查询失败' });
         res.json({ code: 200, data: results });
     });
 };
