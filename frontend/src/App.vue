@@ -13,7 +13,7 @@
 
         <!-- Logo区 -->
         <el-menu-item index="/" class="brand-logo">
-          🏫 榕易学托管管理系统
+          🏫 榕易学少儿成长中心管理系统
         </el-menu-item>
 
         <el-menu-item index="/">
