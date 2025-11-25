@@ -30,7 +30,7 @@
         <el-button type="primary" class="login-btn" :loading="loading" @click="handleLogin">立即登录</el-button>
 
         <div class="footer-text">
-          默认管理员账号: admin / 123456
+          默认管理员账号: admin
         </div>
       </el-form>
     </div>
