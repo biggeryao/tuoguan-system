@@ -1,4 +1,5 @@
 module.exports = {
+  lintOnSave: false, // <--- 加上这一行，关闭恼人的代码检查
   devServer: {
     port: 8080, // 前端运行在 8080
     proxy: {

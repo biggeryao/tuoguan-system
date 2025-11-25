@@ -104,65 +104,77 @@ exports.renewStudent = (req, res) => {
 // 6. 批量导入 (最占地方的那个)
 exports.importStudents = (req, res) => {
     if (!req.file) return res.json({ code: 400, msg: '请上传文件' });
-
     const filePath = req.file.path;
 
     try {
         const workbook = xlsx.readFile(filePath);
-        const sheetName = workbook.SheetNames[0];
-        const sheet = workbook.Sheets[sheetName];
-
-        // raw: false 保证读取到的是字符串（如日期读成 '2023-09-01' 而不是数字）
-        const jsonData = xlsx.utils.sheet_to_json(sheet, { raw: false });
-
-        if (jsonData.length === 0) {
-            deleteFile(filePath);
-            return res.json({ code: 400, msg: 'Excel 中没有数据' });
-        }
-
+        // raw: false 保证读出来全是字符串，防止日期变成数字
+        const jsonData = xlsx.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], { raw: false });
+        
         const students = [];
         jsonData.forEach(row => {
-            // 数据清洗与映射
-            let gender = (row['性别'] && row['性别'].trim() === '女') ? 2 : 1;
+            // 1. 必填检查
+            if (!row['姓名'] || !row['家长电话']) return;
 
+            // 2. 数据清洗
+            // 性别：转成 1或2
+            let gender = 1;
+            if (row['性别'] && row['性别'].trim() === '女') gender = 2;
+
+            // 托管类型：转成 1,2,3
             let careType = 3; // 默认全托
-            if (row['托管类型'] === '午托') careType = 1;
-            if (row['托管类型'] === '晚托') careType = 2;
+            const typeStr = row['托管类型'] || '';
+            if (typeStr.includes('午')) careType = 1;
+            else if (typeStr.includes('晚')) careType = 2;
 
-            // 简单的日期处理，如果没有填，默认今天
-            let enrollDate = row['入托时间'] || new Date().toISOString().substring(0, 10);
+            // 日期处理：如果没有填，或者格式不对，默认给个空或者当前日期
+            // 建议：如果没填生日，就存 null
+            const birthday = row['出生日期'] || null;
+            const enrollDate = row['入托时间'] || new Date().toISOString().substring(0, 10);
 
+            // 3. 构建数据数组 (顺序必须和 SQL 语句对应！)
             students.push([
-                row['姓名'],
-                gender,
-                row['年级'],
-                row['家长电话'],
-                row['学校'] || '',
-                row['班级'] || '',
-                careType,
+                row['姓名'], 
+                gender, 
+                birthday,  // 新增
                 enrollDate,
-                0, // payment_status 默认0
+                row['年级'] || '一年级',
+                row['家长电话'], // 建议做一下去空格处理: String(row['家长电话']).trim()
+                row['学校'] || '', 
+                row['班级'] || '', 
+                careType, 
+                row['健康备注'] || '', // 新增
+                0, // payment_status
+                null, // teacher_id (导入时先不分配老师，后续在系统里分配)
                 new Date() // created_at
             ]);
         });
 
-        // 批量插入 SQL
-        const sql = 'INSERT INTO students (name, gender, grade, parent_phone, school, class_name, care_type, enrollment_date, payment_status, created_at) VALUES ?';
+        if (students.length === 0) {
+            fs.unlinkSync(filePath);
+            return res.json({ code: 400, msg: 'Excel无有效数据' });
+        }
 
+        // 4. 更新 SQL 语句 (增加 birthday, health_notes 等字段)
+        const sql = `
+            INSERT INTO students 
+            (name, gender, birthday, enrollment_date, grade, parent_phone, school, class_name, care_type, health_notes, payment_status, teacher_id, created_at) 
+            VALUES ?
+        `;
+        
         db.query(sql, [students], (err, result) => {
-            deleteFile(filePath); // 成功后删除临时文件
-
+            fs.unlinkSync(filePath); // 删临时文件
             if (err) {
-                console.error('导入数据库报错:', err);
-                return res.json({ code: 500, msg: '导入失败，请检查手机号是否重复或格式错误' });
+                console.error(err);
+                return res.json({ code: 500, msg: '导入失败，请检查电话是否重复' });
             }
-            res.json({ code: 200, msg: `成功导入 ${result.affectedRows} 名学生` });
+            res.json({ code: 200, msg: `成功导入 ${result.affectedRows} 人` });
         });
 
-    } catch (error) {
-        deleteFile(filePath); // 报错也要删除临时文件
-        console.error('解析Excel报错:', error);
-        res.json({ code: 500, msg: 'Excel 解析出错，请检查文件格式' });
+    } catch (e) {
+        fs.unlinkSync(filePath);
+        console.error(e);
+        res.json({ code: 500, msg: '解析出错' });
     }
 };
 
@@ -172,29 +184,75 @@ function deleteFile(path) {
         if (err) console.error('删除临时文件失败:', err);
     });
 }
+
+// server/controllers/studentController.js
+
+
+// 6. 下载导入模板 (后端生成版)
 exports.getTemplate = (req, res) => {
-    // 我们动态生成一个 Excel 文件发给前端
+    // 1. 定义表头 (对应你新表单的结构)
+    // 把 学校、年级、班级 放在一起，符合逻辑
     const headers = [
-        ['姓名', '性别', '年级', '家长电话', '学校', '班级', '托管类型', '入托时间']
-    ];
-    const example = [
-        ['张小明', '男', '一年级', '13800138000', '实验小学', '1班', '午托', '2025-09-01'],
-        ['李小花', '女', '二年级', '13900139000', '第二小学', '3班', '全托', '2025-09-01']
+        ['姓名', '性别', '出生日期', '入托时间', '家长电话', '学校', '年级', '班级', '托管类型', '健康备注']
     ];
 
-    // 创建工作簿
+    // 2. 提供示例数据 (让用户知道格式)
+    const example = [
+        // 示例 1
+        [
+            '张小明',      // 姓名
+            '男',          // 性别
+            '2015-05-20',  // 出生日期 (yyyy-MM-dd)
+            '2023-09-01',  // 入托时间
+            '13800138000', // 电话 (纯数字)
+            '实验小学',    // 学校
+            '一年级',      // 年级
+            '3',           // 班级 (填数字即可，或者填 3班)
+            '午托',        // 类型
+            '花生过敏'     // 备注
+        ],
+        // 示例 2
+        [
+            '李小红', 
+            '女', 
+            '2014-08-15', 
+            '2023-09-01', 
+            '13900139000', 
+            '第一小学', 
+            '二年级', 
+            '1', 
+            '全托', 
+            '无'
+        ]
+    ];
+
+    // 3. 创建工作簿和工作表
     const wb = xlsx.utils.book_new();
+    // 合并表头和示例数据
     const ws = xlsx.utils.aoa_to_sheet([...headers, ...example]);
 
-    // 设置列宽 (可选)
-    ws['!cols'] = [{ wch: 10 }, { wch: 5 }, { wch: 10 }, { wch: 15 }, { wch: 15 }];
+    // 4. 设置列宽 (让表格看起来更专业，wch 代表字符宽度)
+    ws['!cols'] = [
+        { wch: 10 }, // A 姓名
+        { wch: 6 },  // B 性别
+        { wch: 12 }, // C 生日
+        { wch: 12 }, // D 入托
+        { wch: 15 }, // E 电话 (宽一点)
+        { wch: 18 }, // F 学校
+        { wch: 10 }, // G 年级
+        { wch: 8 },  // H 班级
+        { wch: 10 }, // I 类型
+        { wch: 25 }  // J 备注 (最宽)
+    ];
 
-    xlsx.utils.book_append_sheet(wb, ws, "导入模板");
+    // 5. 把 Sheet 放入 Workbook
+    xlsx.utils.book_append_sheet(wb, ws, "学生导入模板");
 
-    // 写入 buffer 并发送
+    // 6. 生成二进制流并发送给前端
     const buffer = xlsx.write(wb, { type: 'buffer', bookType: 'xlsx' });
-
-    res.setHeader('Content-Disposition', 'attachment; filename="student_template.xlsx"');
+    
+    // 设置响应头，告诉浏览器这是一个要下载的文件
+    res.setHeader('Content-Disposition', 'attachment; filename="student_import_template.xlsx"');
     res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
     res.send(buffer);
 };

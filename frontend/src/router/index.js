@@ -4,10 +4,17 @@ import StudentList from '@/views/StudentList.vue'
 import FinanceList from '@/views/FinanceList.vue'
 import TeacherList from '@/views/TeacherList.vue'
 import Login from '@/views/Login.vue' // <--- 引入登录页
+import Dashboard from '@/views/Dashboard.vue'
 
 Vue.use(VueRouter)
 
 const routes = [
+  {
+    path: '/', // 根路径
+    name: 'Dashboard', // 改名
+    component: Dashboard,
+    meta: { title: '数据看板', roles: ['admin', 'teacher'] }
+  },
   {
     path: '/login',
     name: 'Login',
@@ -15,7 +22,7 @@ const routes = [
     hidden: true // 自定义属性，用于菜单循环时隐藏
   },
   {
-    path: '/',
+    path: '/students',
     name: 'StudentList',
     component: StudentList,
     meta: { title: '学生管理', roles: ['admin', 'teacher'] } // <--- 所有人都能看

@@ -1,43 +1,46 @@
 <template>
-  <div class="login-container">
-    <el-card class="login-card">
-      <div slot="header" class="login-header">
-        <span>🏫 小学生托管系统</span>
+  <div class="login-bg">
+    <div class="login-box">
+      <div class="header">
+        <div class="logo">🏫</div>
+        <div class="title">托管智能管理系统</div>
+        <div class="subtitle">让教育管理更简单，更高效</div>
       </div>
-      <el-form :model="loginForm" :rules="rules" ref="loginForm">
+
+      <el-form :model="loginForm" :rules="rules" ref="loginForm" class="login-form">
         <el-form-item prop="username">
           <el-input
-            prefix-icon="el-icon-user"
             v-model="loginForm.username"
-            placeholder="账号"
-          ></el-input>
+            placeholder="请输入账号"
+            prefix-icon="el-icon-user">
+          </el-input>
         </el-form-item>
+
         <el-form-item prop="password">
           <el-input
-            prefix-icon="el-icon-lock"
             v-model="loginForm.password"
             type="password"
-            placeholder="密码"
-            @keyup.enter.native="handleLogin"
-          ></el-input>
+            placeholder="请输入密码"
+            prefix-icon="el-icon-lock"
+            show-password
+            @keyup.enter.native="handleLogin">
+          </el-input>
         </el-form-item>
-        <el-button
-          type="primary"
-          style="width: 100%"
-          :loading="loading"
-          @click="handleLogin"
-          >登 录</el-button
-        >
+
+        <el-button type="primary" class="login-btn" :loading="loading" @click="handleLogin">立即登录</el-button>
+
+        <div class="footer-text">
+          默认管理员账号: admin / 123456
+        </div>
       </el-form>
-    </el-card>
+    </div>
   </div>
 </template>
 
 <script>
-import request from '@/utils/request' // 直接用 request 发请求
+import request from '@/utils/request'
 
 export default {
-  // eslint-disable-next-line vue/multi-word-component-names
   name: 'Login',
   data () {
     return {
@@ -56,13 +59,10 @@ export default {
           this.loading = true
           request.post('/users/login', this.loginForm).then(res => {
             if (res.code === 200) {
-              // 1. 存 Token 和 角色
               localStorage.setItem('token', res.data.token)
               localStorage.setItem('role', res.data.role)
               localStorage.setItem('name', res.data.name)
-
-              this.$message.success('登录成功')
-              // 2. 跳转首页
+              this.$message.success('欢迎回来')
               this.$router.push('/')
             } else {
               this.$message.error(res.msg)
@@ -77,21 +77,40 @@ export default {
 </script>
 
 <style scoped>
-.login-container {
+.login-bg {
   height: 100vh;
+  width: 100vw;
+  /* 漂亮的蓝紫色渐变背景 */
+  background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
   display: flex;
   justify-content: center;
   align-items: center;
-  background-color: #2d3a4b; /* 深色背景 */
-  background-image: linear-gradient(135deg, #2d3a4b 0%, #4b6cb7 100%);
 }
-.login-card {
+
+.login-box {
   width: 400px;
-}
-.login-header {
+  background: rgba(255, 255, 255, 0.95); /* 轻微透明 */
+  border-radius: 16px;
+  padding: 40px;
+  box-shadow: 0 15px 35px rgba(0, 0, 0, 0.2);
   text-align: center;
-  font-size: 20px;
-  font-weight: bold;
-  color: #333;
 }
+
+.header { margin-bottom: 30px; }
+.logo { font-size: 48px; margin-bottom: 10px; }
+.title { font-size: 24px; font-weight: bold; color: #333; margin-bottom: 5px; }
+.subtitle { font-size: 14px; color: #909399; }
+
+.login-btn {
+  width: 100%;
+  height: 44px;
+  font-size: 16px;
+  border-radius: 8px;
+  background: linear-gradient(90deg, #667eea 0%, #764ba2 100%);
+  border: none;
+  margin-top: 10px;
+}
+.login-btn:hover { opacity: 0.9; }
+
+.footer-text { margin-top: 20px; font-size: 12px; color: #ccc; }
 </style>

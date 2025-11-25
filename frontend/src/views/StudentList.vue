@@ -250,119 +250,118 @@
       :visible.sync="dialogVisible"
       width="500px"
     >
-      <el-form ref="dataForm" :model="temp" :rules="rules" label-width="80px">
-        <!-- 1. 姓名 -->
-        <el-form-item label="姓名" prop="name">
-          <el-input v-model="temp.name" style="width: 200px"></el-input>
-        </el-form-item>
+<el-form ref="dataForm" :model="temp" :rules="rules" label-width="80px">
 
-        <!-- 2. 性别 (新增) -->
-        <el-form-item label="性别">
-          <el-radio-group v-model="temp.gender">
-            <el-radio :label="1">男 👦</el-radio>
-            <el-radio :label="2">女 👧</el-radio>
-          </el-radio-group>
-        </el-form-item>
+  <!-- === 第一部分：基础信息 (姓名、电话、性别、生日) === -->
+  <el-divider content-position="left">基础信息</el-divider>
+  <el-row :gutter="20">
+    <el-col :span="12">
+      <el-form-item label="姓名" prop="name">
+        <el-input v-model="temp.name" placeholder="请输入姓名"></el-input>
+      </el-form-item>
+    </el-col>
+    <el-col :span="12">
+      <el-form-item label="电话" prop="parent_phone">
+        <el-input v-model="temp.parent_phone" placeholder="家长联系电话" maxlength="11"></el-input>
+      </el-form-item>
+    </el-col>
+  </el-row>
 
-        <!-- 3. 出生日期 (新增) -->
-        <el-form-item label="出生日期">
-          <el-date-picker
-            v-model="temp.birthday"
-            type="date"
-            placeholder="选择生日"
-            value-format="yyyy-MM-dd"
-            style="width: 100%"
-          >
-          </el-date-picker>
-        </el-form-item>
+  <el-row :gutter="20">
+    <el-col :span="12">
+      <el-form-item label="性别">
+        <el-radio-group v-model="temp.gender">
+          <el-radio :label="1">男 👦</el-radio>
+          <el-radio :label="2">女 👧</el-radio>
+        </el-radio-group>
+      </el-form-item>
+    </el-col>
+    <el-col :span="12">
+      <el-form-item label="生日">
+        <el-date-picker
+          v-model="temp.birthday"
+          type="date"
+          placeholder="选择出生日期"
+          value-format="yyyy-MM-dd"
+          style="width: 100%">
+        </el-date-picker>
+      </el-form-item>
+    </el-col>
+  </el-row>
 
-        <!-- 4. 入托时间 (新增) -->
-        <el-form-item label="入托时间">
-          <el-date-picker
-            v-model="temp.enrollment_date"
-            type="date"
-            placeholder="选择入托日期"
-            value-format="yyyy-MM-dd"
-            style="width: 100%"
-          >
-          </el-date-picker>
-        </el-form-item>
+  <!-- === 第二部分：就读信息 (学校、年级、班级放一起) === -->
+  <el-divider content-position="left">就读信息</el-divider>
 
-        <!-- 5. 年级 -->
-        <el-form-item label="年级" prop="grade">
-          <el-select v-model="temp.grade" style="width: 100%">
-            <el-option
-              v-for="g in [
-                '一年级',
-                '二年级',
-                '三年级',
-                '四年级',
-                '五年级',
-                '六年级',
-              ]"
-              :key="g"
-              :label="g"
-              :value="g"
-            ></el-option>
-          </el-select>
-        </el-form-item>
-        <el-form-item label="负责老师" prop="teacher_id">
-          <el-select
-            v-model="temp.teacher_id"
-            placeholder="请选择带班老师"
-            style="width: 100%"
-            clearable
-          >
-            <el-option
-              v-for="item in teacherOptions"
-              :key="item.id"
-              :label="item.name"
-              :value="item.id"
-            >
-            </el-option>
-          </el-select>
-        </el-form-item>
-        <!-- 6. 电话 -->
-        <el-form-item label="电话" prop="parent_phone">
-          <el-input v-model="temp.parent_phone"></el-input>
-        </el-form-item>
-        <el-row :gutter="20">
-          <el-col :span="12">
-            <el-form-item label="学校">
-              <el-input
-                v-model="temp.school"
-                placeholder="例如: 第一小学"
-              ></el-input>
-            </el-form-item>
-          </el-col>
-          <el-col :span="12">
-            <el-form-item label="班级">
-              <el-input
-                v-model="temp.class_name"
-                placeholder="例如: 3班"
-              ></el-input>
-            </el-form-item>
-          </el-col>
-        </el-row>
+  <el-form-item label="就读学校">
+    <el-input v-model="temp.school" placeholder="例如: 第一实验小学"></el-input>
+  </el-form-item>
 
-        <el-form-item label="托管类型">
-          <el-radio-group v-model="temp.care_type">
-            <el-radio :label="1">午托 (只吃午饭)</el-radio>
-            <el-radio :label="2">晚托 (作业+晚饭)</el-radio>
-            <el-radio :label="3">全托 (午+晚)</el-radio>
-          </el-radio-group>
-        </el-form-item>
+  <el-row :gutter="20">
+    <el-col :span="12">
+      <el-form-item label="年级" prop="grade">
+        <el-select v-model="temp.grade" style="width: 100%" placeholder="请选择">
+          <el-option v-for="g in ['一年级','二年级','三年级','四年级','五年级','六年级']" :key="g" :label="g" :value="g"></el-option>
+        </el-select>
+      </el-form-item>
+    </el-col>
+    <el-col :span="12">
+      <el-form-item label="班级">
+        <el-input v-model="temp.class_name" placeholder="例如: 3班">
+          <template slot="append">班</template>
+        </el-input>
+      </el-form-item>
+    </el-col>
+  </el-row>
 
-        <el-form-item label="健康备注">
-          <el-input
-            type="textarea"
-            v-model="temp.health_notes"
-            placeholder="重要！请填写过敏源、忌口或病史（如：花生过敏、哮喘），无则留空"
-            :rows="2"
-          >
-          </el-input>
-        </el-form-item>
-      </el-form>
+  <!-- === 第三部分：托管信息 (类型、时间、老师) === -->
+  <el-divider content-position="left">托管配置</el-divider>
+
+  <el-row :gutter="20">
+    <el-col :span="12">
+      <el-form-item label="托管类型">
+        <el-select v-model="temp.care_type" style="width: 100%">
+          <el-option label="🍱 午托" :value="1"></el-option>
+          <el-option label="🌙 晚托" :value="2"></el-option>
+          <el-option label="🏠 全托" :value="3"></el-option>
+        </el-select>
+      </el-form-item>
+    </el-col>
+    <el-col :span="12">
+      <el-form-item label="入托时间">
+        <el-date-picker
+          v-model="temp.enrollment_date"
+          type="date"
+          placeholder="选择日期"
+          value-format="yyyy-MM-dd"
+          style="width: 100%">
+        </el-date-picker>
+      </el-form-item>
+    </el-col>
+  </el-row>
+
+  <el-form-item label="负责老师" prop="teacher_id">
+    <el-select v-model="temp.teacher_id" placeholder="请选择带班老师 (用于计算提成)" style="width: 100%" clearable filterable>
+      <el-option
+        v-for="item in teacherOptions"
+        :key="item.id"
+        :label="item.name"
+        :value="item.id">
+        <span style="float: left">{{ item.name }}</span>
+        <span style="float: right; color: #8492a6; font-size: 13px">{{ item.phone }}</span>
+      </el-option>
+    </el-select>
+  </el-form-item>
+
+  <el-form-item label="健康备注">
+    <el-input
+      type="textarea"
+      v-model="temp.health_notes"
+      placeholder="重要：请填写过敏源(如海鲜/花生)、忌口或病史，无则留空"
+      :rows="2">
+    </el-input>
+  </el-form-item>
+
+</el-form>
       <div slot="footer">
         <el-button @click="dialogVisible = false">取消</el-button>
         <el-button

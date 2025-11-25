@@ -10,7 +10,8 @@ require('./db');
 const studentsRouter = require('./routes/studentRoutes');
 const financeRouter = require('./routes/financeRoutes');
 const teachersRouter = require('./routes/teachersRoutes'); 
-const usersRouter = require('./routes/users'); // <--- 新增
+const usersRouter = require('./routes/users');
+const dashboardRouter = require('./routes/dashboard');
 
 const app = express();
 const port = 3000;
@@ -27,6 +28,8 @@ app.use('/api/students', studentsRouter);
 app.use('/api/finance', financeRouter);
 app.use('/api/teachers', teachersRouter);
 app.use('/api/users', usersRouter);
+app.use('/api/dashboard', dashboardRouter);
+
 // === 启动服务 ===
 app.listen(port, () => {
     console.log(`---------------------------------------`);
